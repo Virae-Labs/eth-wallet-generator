@@ -1,20 +1,16 @@
 #!/usr/bin/env node
 /**
- * wallet-gen.js (minimal, fixed)
+ * wallet-gen.js (minimal, fixed, no --no-summary-files, no mnemonic in report)
  *
  * Purpose:
  *  - Generate a single shared 12-word mnemonic (ethers Wallet.createRandom())
  *  - Derive N child wallets from that mnemonic using m/44'/60'/0'/0/i
  *  - Produce keystore JSON files for each derived wallet
- *
- * Minimal CLI options to match user example:
- *  --count, --out-dir, --modes, --keystore-password, --no-summary-files,
- *  --concurrency, --chmod, --dry-run
+ *  - Always write mnemonic.txt and generation_report.json (report excludes mnemonic)
  *
  * Usage example:
  *  node wallet-gen.js --count 2 --out-dir ./out_mnemonic_keystore_only \
- *    --modes mnemonic-generate,keystore --keystore-password "StrongPass123" \
- *    --no-summary-files
+ *    --modes mnemonic-generate,keystore --keystore-password "StrongPass123"
  */
 
 const { Command } = require("commander");
@@ -51,7 +47,6 @@ program
   .option("--keystore-password <pw>", "password for keystore files (plain text)", "")
   .option("--concurrency <n>", "concurrency for generation", int10, 2)
   .option("--chmod <octal>", "chmod for sensitive files (octal)", int8, 0o600)
-  .option("--no-summary-files", "do NOT write mnemonic.txt and generation_report.json")
   .option("--dry-run", "simulate without writing files", false)
   .parse(process.argv);
 
@@ -67,7 +62,6 @@ const opts = program.opts();
   const dryRun = !!opts.dryRun;
   const concurrency = Math.max(1, opts.concurrency || 2);
   const chmodMode = opts.chmod || 0o600;
-  const writeSummary = !!opts.summaryFiles; // false if --no-summary-files passed
   const keystorePassword = typeof opts.keystorePassword === "string" ? opts.keystorePassword : "";
 
   // Basic validation of requested modes
@@ -100,7 +94,8 @@ const opts = program.opts();
   console.log(sharedMnemonic);
   console.log();
 
-  if (writeSummary && !dryRun) {
+  // Always write mnemonic.txt (unless dry-run)
+  if (!dryRun) {
     try {
       const mnemonicFile = path.join(outDir, "mnemonic.txt");
       await fs.writeFile(mnemonicFile, `${sharedMnemonic}\n`, { encoding: "utf8", mode: chmodMode });
@@ -113,8 +108,7 @@ const opts = program.opts();
   // Derive wallet for an index using HDNodeWallet.fromPhrase(..., undefined, path)
   function deriveWalletFromSharedMnemonic(idx) {
     const pathForIndex = `${derivationBase}/${idx}`;
-    // IMPORTANT: second arg is password (we don't use), third arg is the path to return
-    // This returns an HD node already at the requested full path (not trying to derive again).
+    // IMPORTANT: second arg is password (unused), third arg is the path to return
     return HDNodeWallet.fromPhrase(sharedMnemonic, undefined, pathForIndex);
   }
 
@@ -134,10 +128,8 @@ const opts = program.opts();
     out.address = wallet.address.toLowerCase();
     out.checksumAddress = getAddress(out.address);
 
-    // create keystore JSON using ethers Wallet from the private key
-    const pw = keystorePassword;
-    // wallet (HDNodeWallet) has .privateKey, but Wallet.fromPrivateKey is not needed; HDNodeWallet.encrypt exists
-    const keystoreJson = await wallet.encrypt(pw);
+    // create keystore JSON
+    const keystoreJson = await wallet.encrypt(keystorePassword);
 
     const filename = `UTC--${timestampForFiles}--${out.address.replace(/^0x/, "")}.json`;
     const keystoreDir = path.join(outDir, "keystore");
@@ -166,11 +158,11 @@ const opts = program.opts();
     process.exit(1);
   }
 
-  // Write generation report (includes mnemonic for convenience) unless suppressed
-  if (writeSummary && !dryRun) {
+  // Always write generation_report.json (EXCLUDES MNEMONIC)
+  if (!dryRun) {
     const reportPath = path.join(outDir, "generation_report.json");
     try {
-      await fs.writeJson(reportPath, { mnemonic: sharedMnemonic, derivationBase, results }, { spaces: 2 });
+      await fs.writeJson(reportPath, { derivationBase, results }, { spaces: 2 });
       try { await fs.chmod(reportPath, chmodMode); } catch (_) {}
     } catch (e) {
       console.warn("Failed to write generation_report.json:", e?.message || e);
