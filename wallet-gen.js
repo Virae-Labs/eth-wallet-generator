@@ -58,6 +58,7 @@ program
   .option("--include-private", "include private key and mnemonic in CSV/TXT (DANGEROUS)", false)
   .option("--csv-file <file>", "CSV filename (default: <out-dir>/wallets.csv)", "")
   .option("--txt-file <file>", "TXT filename (default: <out-dir>/wallets.txt)", "")
+  .option("--no-summary-files", "do not write CSV/TXT summary files", false)
   .option("--concurrency <n>", "concurrency for generation (default 2)", int10, 2)
   .option("--validate-aftergen", "validate generated items (default off)", false)
   .option("--chmod <octal>", "chmod for sensitive files (default 600)", int8, 0o600)
@@ -73,6 +74,7 @@ const opts = program.opts();
   const outDir = path.resolve(opts.outDir || "./wallets_out");
   const modes = (opts.modes || "hex").split(",").map((s) => s.trim()).filter(Boolean);
   const includePrivate = !!opts.includePrivate;
+  const noSummaryFiles = !!opts.noSummaryFiles;
   const concurrency = Math.max(1, opts.concurrency || 2);
   const csvPath = opts.csvFile ? path.resolve(opts.csvFile) : path.join(outDir, "wallets.csv");
   const txtPath = opts.txtFile ? path.resolve(opts.txtFile) : path.join(outDir, "wallets.txt");
@@ -121,10 +123,12 @@ const opts = program.opts();
     csvHeader.push({ id: "privateKey", title: "private_key_hex" });
     csvHeader.push({ id: "mnemonic", title: "mnemonic" });
   }
-  const csvWriter = createCsvWriter({ path: csvPath, header: csvHeader, append: false });
+  const csvWriter = noSummaryFiles
+    ? null
+    : createCsvWriter({ path: csvPath, header: csvHeader, append: false });
 
   async function appendTxtLine(line) {
-    if (dryRun) return;
+    if (dryRun || noSummaryFiles) return;
     await fs.appendFile(txtPath, line + "\n", { encoding: "utf8" });
   }
 
@@ -213,7 +217,7 @@ const opts = program.opts();
   }
 
   // Write CSV/TXT
-  if (!dryRun) {
+  if (!dryRun && !noSummaryFiles) {
     await fs.ensureDir(path.dirname(csvPath));
     await fs.ensureDir(path.dirname(txtPath));
     await fs.writeFile(txtPath, "", { encoding: "utf8" });
@@ -250,7 +254,7 @@ const opts = program.opts();
     await appendTxtLine(parts.join(" | "));
   }
 
-  if (!dryRun) {
+  if (!dryRun && !noSummaryFiles && csvWriter) {
     await csvWriter.writeRecords(csvRows);
     try { await fs.chmod(csvPath, chmodMode); } catch (_) {}
     try { await fs.chmod(txtPath, chmodMode); } catch (_) {}
@@ -298,7 +302,13 @@ const opts = program.opts();
   // Generation report
   const genReportPath = path.join(outDir, "generation_report.json");
   if (!dryRun) {
-    await fs.writeJson(genReportPath, results, { spaces: 2 });
+    // Safe report: exclude privateKey & mnemonic unless --include-private
+    const safeResults = results.map(r => {
+      const { privateKey, mnemonic, ...rest } = r;
+      if (includePrivate) return r;
+      return rest;
+    });
+    await fs.writeJson(genReportPath, safeResults, { spaces: 2 });
     try { await fs.chmod(genReportPath, chmodMode); } catch (_) {}
   }
 
