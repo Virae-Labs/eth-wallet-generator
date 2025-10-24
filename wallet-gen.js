@@ -113,6 +113,10 @@ const opts = program.opts();
   }
 
   async function generateOne(i) {
+    // Add random delay between 100ms and 1000ms
+    const randomDelay = Math.floor(Math.random() * 900) + 100;
+    await new Promise(resolve => setTimeout(resolve, randomDelay));
+    
     const ts = new Date().toISOString();
     const out = {
       id: i,
