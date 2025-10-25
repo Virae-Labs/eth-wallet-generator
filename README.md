@@ -21,8 +21,7 @@ node wallet-gen.js \
 	--count 5 \
 	--out-dir ./out_mnemonic_keystore_only \
 	--modes mnemonic-generate,keystore \
-	--keystore-password "StrongPass123" \
-	--no-summary-files
+	--keystore-password "StrongPass123"
 ```
 
 Outputs:
