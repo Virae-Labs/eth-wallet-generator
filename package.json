@@ -16,6 +16,7 @@
     "commander": "^14.0.1",
     "csv-writer": "^1.6.0",
     "ethers": "^6.15.0",
+    "fast-glob": "^3.3.3",
     "fs-extra": "^11.3.2",
     "p-limit": "^3.1.0"
   }
