@@ -13,3 +13,9 @@ node wallet-gen-from-mnemonic.js \
 node unlock-keystore-verify.js \
   --in-dir ./out_existing/keystore \
   --password "123456"
+
+./wallet-gen-zip.sh [COUNT] [OUT_DIR] [KEYSTORE_PASSWORD]
+./wallet-gen-from-mnemonic-zip.sh [MNEMONIC] [COUNT] [OUT_DIR] [KEYSTORE_PASSWORD]
+
+./wallet-gen-zip.sh 10 ./out_2 123456
+./wallet-gen-from-mnemonic-zip.sh "goose music bench regular globe sure rabbit novel tree country aspect insect" 5 ./out_3 123456
