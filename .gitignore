@@ -1,2 +1,10 @@
 node_modules/
+output/
+wallets_out/
 out_*
+*.zip
+mnemonic.txt
+*.key
+.env
+.env.*
+!.env.example
