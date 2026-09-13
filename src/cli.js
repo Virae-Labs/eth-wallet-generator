@@ -2,6 +2,7 @@ const { Command, Option, InvalidArgumentError } = require('commander');
 const { verify } = require('./commands/verify');
 const { generate } = require('./commands/generate');
 const { pack } = require('./formats/archive');
+const { importKeypair } = require('./commands/import');
 const { exportKeypairs } = require('./commands/export');
 const chainOption = () => new Option('--chain <chain>', 'wallet chain family').choices(['evm', 'solana']).default('evm');
 
@@ -31,9 +32,18 @@ async function run(args = process.argv.slice(2)) {
     .option('--mnemonic-env <name>', 'environment variable containing mnemonic')
     .option('--write-mnemonic', 'also save the supplied mnemonic in the private batch directory')
     .action(opts => generate('derive', opts));
-  program.command('pack').description('Package an encrypted batch (only EVM packages support the current backend)')
+  program.command('import').description('Encrypt an existing Solana CLI keypair without changing its address')
+    .addOption(new Option('--chain <chain>', 'import chain').choices(['solana']).makeOptionMandatory())
+    .requiredOption('--keypair-file <file>', 'existing 64-byte Solana CLI JSON keypair')
+    .requiredOption('--out-dir <dir>', 'new encrypted batch directory')
+    .option('--expected-address <address>', 'reject a different public address')
+    .option('--keystore-password-file <file>', 'encryption password file')
+    .option('--keystore-password-env <name>', 'variable containing encryption password')
+    .option('--dry-run', 'show plan without reading or writing secrets')
+    .action(importKeypair);
+  program.command('pack').description('Package an encrypted EVM or Solana batch')
     .addOption(chainOption())
-    .requiredOption('--in-dir <dir>', 'batch directory containing generation_report.json')
+    .requiredOption('--in-dir <dir>', 'batch directory containing the chain-specific wallet report')
     .option('--out-file <file>', 'new ZIP path; defaults to <batch>.zip')
     .action(pack);
   program.command('verify').description('Verify encrypted wallets or explicitly selected Solana keypairs')

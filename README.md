@@ -24,6 +24,7 @@ ZIP scripts have been removed. Use the subcommands below directly:
 | Command | Purpose |
 | --- | --- |
 | `generate` | Create a new shared mnemonic and a batch of encrypted wallets |
+| `import` | Encrypt an existing Solana CLI keypair, preserving its address |
 | `derive` | Recover or extend wallets from an existing mnemonic |
 | `verify` | Decrypt keystores and check their addresses |
 | `pack` | Create a fresh encrypted-wallet ZIP, excluding the mnemonic |
@@ -157,3 +158,37 @@ npm test
 implementations, `src/formats/` archive handling, and `src/shared/` secret input.
 Test fixtures use public test keys and disposable temporary directories, never
 existing user wallets. [AGENTS.md](AGENTS.md) provides operating instructions for AI agents.
+
+## Import an existing Solana wallet
+
+Use `import` for an existing Solana CLI JSON file containing the 64 secret-key
+bytes. It creates **one encrypted wallet**, not a new address or mnemonic:
+
+```sh
+node bin/wallet-gen.js import --chain solana \
+  --keypair-file /secure/deployer.json \
+  --out-dir ./output/deployer-001 \
+  --keystore-password-file /secure/password.txt
+node bin/wallet-gen.js verify --chain solana \
+  --in-dir ./output/deployer-001/keystore --password-file /secure/password.txt
+node bin/wallet-gen.js pack --chain solana --in-dir ./output/deployer-001
+```
+
+Optionally add `--expected-address <public-address>` to reject a different wallet.
+`--dry-run` previews the output without reading secrets. Password sources match
+`generate`: file, environment variable name, or hidden interactive prompt.
+The input must be a regular file, not a symlink; inconsistent keypair bytes are
+rejected. Existing output directories are never overwritten. The source keypair
+is unchanged and never copied into the ZIP.
+
+Imported wallets use keystore/manifest **v2**, `keySource: "imported-keypair"`,
+`derivationPath: null`, and `derivationPathTemplate: null`. AAD authenticates the
+version, address, null path and key source. Mnemonic-derived wallets retain v1.
+There is no mnemonic recovery for this imported wallet: retain its original keypair
+or the encrypted keystore and password. Explicit plaintext `export` also supports
+v2 and preserves the imported provenance.
+
+The dashboard backend must support imported-keypair v2 **before uploading this
+ZIP**. Older deployments reject it; updating the generator alone is insufficient.
+Choose the intended Solana network in the dashboard. Creating a ZIP is offline
+and does not import the wallet into the application or change any chain state.

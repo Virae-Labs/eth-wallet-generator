@@ -6,7 +6,7 @@
   "scripts": {
     "wallet": "node bin/wallet-gen.js",
     "test": "node --test tests/*.test.js",
-    "check": "node --check src/cli.js && node --check src/commands/generate.js && node --check src/commands/verify.js && node --check src/formats/archive.js && node --check src/shared/secrets.js && node --check src/chains/solana.js && node --check src/chains/index.js && node --check src/chains/evm.js && node --check src/commands/export.js"
+    "check": "node --check src/cli.js && node --check src/commands/generate.js && node --check src/commands/verify.js && node --check src/formats/archive.js && node --check src/shared/secrets.js && node --check src/chains/solana.js && node --check src/chains/index.js && node --check src/chains/evm.js && node --check src/commands/export.js && node --check src/commands/import.js"
   },
   "keywords": [],
   "author": "",

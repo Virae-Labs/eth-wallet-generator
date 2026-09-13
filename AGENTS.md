@@ -8,7 +8,7 @@ tool, not a trading client. It does not need RPC access or a database.
 
 - Read README.md before operating the tool; use `node bin/wallet-gen.js --help`
   and `<command> --help` for exact options.
-- Commands: `generate`, `derive`, `verify`, `pack`, `export`.
+- Commands: `generate`, `derive`, `import`, `verify`, `pack`, `export`.
 - Run commands in this repository; run Git commands here, not in the parent workspace.
 - An assessment request does not authorize generating wallets or changing files.
 - When asked to generate/derive wallets, execute the requested count and index range
@@ -69,3 +69,12 @@ same phrase/index range. Do not delete or repair user wallet material automatica
 - After code changes run `npm test`, `npm run check`, and `git diff --check`.
   Validate documentation links when changing docs. Tests require Python 3 for ZIP inspection.
 - Keep README.md and docs/usage.md synchronized with command behavior.
+
+## Existing Solana wallets
+
+Use `import --chain solana --keypair-file <path> --out-dir <new batch>` for an
+existing keypair. Do not use `generate`, invent a mnemonic, or fabricate an HD
+path for it. Use `--expected-address` when the public address is known. Password
+handling follows generation. Verify, then pack; never package the plaintext
+source. Imported-keypair v2 support must be deployed in the backend before a
+dashboard upload. Report local validation separately from online import.

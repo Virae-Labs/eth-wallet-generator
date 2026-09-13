@@ -141,3 +141,19 @@ The verifier checks length, byte range, public-key consistency and a signature.
 Existing outputs are refused; an interrupted export retains INCOMPLETE. Directories
 use 0700 and keypair files use 0600. `pack` does not support plaintext export batches.
 Never rename a plaintext report to an encrypted report to bypass this boundary.
+
+## Imported keypair format (v2)
+
+An existing, non-HD Solana CLI keypair cannot claim a derivation path. Its
+keystore uses `version: 2`, `keySource: "imported-keypair"`, and
+`derivationPath: null`. Encryption algorithms and KDF parameters are unchanged.
+The AES-GCM AAD is JSON serialization of:
+`["solana-keystore", 2, "solana", address, null, "imported-keypair"]`.
+
+The ZIP manifest uses `schemaVersion: 2`, `chain: "solana"`,
+`keyFormat: "solana-keystore"`, `keySource: "imported-keypair"`, and
+`derivationPathTemplate: null`. Each result uses `derivationPath: null`.
+A batch cannot mix v1 and v2 keystores. Archive filenames and address validation
+are unchanged. Explicit plaintext exports preserve this version/provenance,
+but use `keyFormat: "solana-keypair"` and `encrypted: false`; they are not ZIP
+import inputs. Existing v1 derivation, AAD and recovery semantics stay unchanged.

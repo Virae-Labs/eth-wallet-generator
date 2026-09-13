@@ -33,14 +33,14 @@ async function derive(mnemonic, index) {
   } finally { seed.fill(0); }
 }
 function aad(record) {
-  return Buffer.from(JSON.stringify([format, 1, 'solana', record.address, record.derivationPath]), 'utf8');
+  return Buffer.from(JSON.stringify([format, record.version, 'solana', record.address, record.derivationPath, ...(record.version === 2 ? [record.keySource] : [])]), 'utf8');
 }
 function validateKeystore(record, expectedAddress) {
-  if (!record || record.format !== format || record.version !== 1 || record.chain !== 'solana') throw new Error('Invalid Solana keystore format.');
+  if (!record || record.format !== format || ![1, 2].includes(record.version) || record.chain !== 'solana') throw new Error('Invalid Solana keystore format.');
   validateAddress(record.address);
   if (expectedAddress !== undefined && record.address !== expectedAddress) throw new Error('Invalid Solana keystore address.');
   const match = typeof record.derivationPath === 'string' && record.derivationPath.match(/^m\/44'\/501'\/(\d+)'\/0'$/);
-  if (!match || derivationPath(Number(match[1])) !== record.derivationPath) throw new Error('Invalid Solana derivation path.');
+  if (record.version === 2 ? (record.keySource !== 'imported-keypair' || record.derivationPath !== null) : (!match || derivationPath(Number(match[1])) !== record.derivationPath)) throw new Error('Invalid Solana derivation path.');
   const c = record.crypto;
   if (!c || c.cipher !== 'aes-256-gcm' || c.kdf !== 'scrypt' || !c.kdfparams ||
       Object.entries(kdfparams).some(([key, value]) => c.kdfparams[key] !== value)) throw new Error('Invalid Solana encryption parameters.');
@@ -53,9 +53,9 @@ async function encryptionKey(password, salt) {
   if (typeof password !== 'string' || !password.trim()) throw new Error('Keystore password must not be empty.');
   return deriveKey(password, salt, 32, { N: kdfparams.N, r: kdfparams.r, p: kdfparams.p, maxmem: 256 * 1024 * 1024 });
 }
-async function encrypt(wallet, password, index) {
+async function encrypt(wallet, password, index, imported = false) {
   const salt = randomBytes(32), iv = randomBytes(12);
-  const record = { format, version: 1, chain: 'solana', address: wallet.address, derivationPath: derivationPath(index) };
+  const record = { format, version: imported ? 2 : 1, chain: 'solana', address: wallet.address, derivationPath: imported ? null : derivationPath(index), ...(imported ? { keySource: 'imported-keypair' } : {}) };
   const key = await encryptionKey(password, salt);
   try {
     const cipher = createCipheriv('aes-256-gcm', key, iv);
@@ -85,4 +85,4 @@ function verifySignature(wallet) {
   const signature = nacl.sign.detached(message, wallet.secretKey);
   if (!nacl.sign.detached.verify(message, signature, wallet.publicKey)) throw new Error('Invalid Solana signing key.');
 }
-module.exports = { derivationBase, derivationPath, format, generateMnemonic: () => bip39.generateMnemonic(128), derive, encrypt, decrypt, validateKeystore, validateAddress, fromSecretKey, verifySignature };
+module.exports = { derivationBase, derivationPath, format, generateMnemonic: () => bip39.generateMnemonic(128), derive, encrypt, encryptImported: (wallet, password) => encrypt(wallet, password, 0, true), decrypt, validateKeystore, validateAddress, fromSecretKey, verifySignature };

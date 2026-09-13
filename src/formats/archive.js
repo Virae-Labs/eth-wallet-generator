@@ -18,7 +18,8 @@ async function readBatch(opts) {
   const reportBytes = await readRegular(path.join(dir, chain.reportName));
   let report;
   try { report = JSON.parse(reportBytes.toString('utf8')); } catch { throw new Error('Invalid generation report JSON.'); }
-  if (chain.name === 'solana' && (report?.schemaVersion !== 1 || report.chain !== 'solana' || report.keyFormat !== chain.format || report.derivationPathTemplate !== chain.derivationBase)) throw new Error('Invalid Solana batch manifest.');
+  const imported = report?.schemaVersion === 2 && report.keySource === 'imported-keypair' && report.derivationPathTemplate === null;
+  if (chain.name === 'solana' && (report.chain !== 'solana' || report.keyFormat !== chain.format || !(imported || (report.schemaVersion === 1 && report.derivationPathTemplate === chain.derivationBase)))) throw new Error('Invalid Solana batch manifest.');
   const results = report?.results;
   if (!Array.isArray(results) || !results.length) throw new Error('Generation report must contain wallet entries.');
   const seenIds = new Set(), seenAddresses = new Set(), seenFiles = new Set();
@@ -36,13 +37,13 @@ async function readBatch(opts) {
     try { ks = JSON.parse(bytes.toString('utf8')); } catch { throw new Error('Invalid keystore JSON.'); }
     if (chain.name === 'solana') {
       chain.validateKeystore(ks, address);
-      if (row.derivationPath !== chain.derivationPath(row.id) || ks.derivationPath !== row.derivationPath) throw new Error('Invalid Solana derivation path in report.');
+      if (ks.version !== (imported ? 2 : 1) || row.derivationPath !== (imported ? null : chain.derivationPath(row.id)) || ks.derivationPath !== row.derivationPath) throw new Error('Invalid Solana derivation path in report.');
     } else if (ks.version !== 3 || !(ks.crypto || ks.Crypto) || typeof ks.address !== 'string' || `0x${ks.address.replace(/^0x/, '').toLowerCase()}` !== address) throw new Error('Keystore format or address does not match report.');
     files.push({ bytes, name: row.keystoreFile });
     // Only allow public metadata into the manifest. Never copy arbitrary report fields.
     clean.push({ id: row.id, address, ...(chain.name === 'evm' ? { checksumAddress: chain.getAddress(address) } : {}), derivationPath: row.derivationPath, keystoreFile: row.keystoreFile, timestamp: row.timestamp });
   }
-  return { dir, chain, files, report: { ...chain.manifest, results: clean } };
+  return { dir, chain, files, report: { ...chain.manifest, ...(imported ? { schemaVersion: 2, keySource: 'imported-keypair', derivationPathTemplate: null } : {}), results: clean } };
 }
 async function pack(opts) {
   const { dir, chain, files, report } = await readBatch(opts);

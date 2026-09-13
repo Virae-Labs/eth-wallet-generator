@@ -37,7 +37,7 @@ async function exportKeypairs(opts) {
       results.push({ id: row.id, address: row.address, derivationPath: row.derivationPath, keypairFile });
     } finally { wallet.secretKey.fill(0); }
   }
-  await fs.writeFile(path.join(outDir, 'solana_keypair_report.json'), JSON.stringify({ schemaVersion: 1, chain: 'solana', keyFormat: 'solana-keypair', encrypted: false, derivationPathTemplate: chain.derivationBase, results }, null, 2) + '\n', { flag: 'wx', mode: 0o600 });
+  await fs.writeFile(path.join(outDir, 'solana_keypair_report.json'), JSON.stringify({ ...report, keyFormat: 'solana-keypair', encrypted: false, results }, null, 2) + '\n', { flag: 'wx', mode: 0o600 });
   await fs.unlink(path.join(outDir, 'INCOMPLETE'));
   console.log(`Exported and verified ${results.length} plaintext Solana keypair(s): ${outDir}. These files contain private keys; pack does not package this format.`);
 }

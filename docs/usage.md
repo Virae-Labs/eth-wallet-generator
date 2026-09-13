@@ -93,3 +93,22 @@ mnemonic, generation report and ZIP use 0600 (subject to stricter process umask)
 The plaintext mnemonic bypasses keystore password protection: secure it separately.
 Use fresh batches for tests; never use keys copied from historical example scripts
 for real assets. Do not include secrets or output archives in Git.
+
+## Existing Solana keypair import
+
+`node bin/wallet-gen.js import --chain solana --keypair-file /secure/keypair.json
+--out-dir ./output/imported-001 --keystore-password-file /secure/password.txt`
+(run as one line).
+
+Imports one 64-byte Solana CLI JSON keypair with wallet ID 0. Options:
+`--expected-address <address>`, `--dry-run`, `--keystore-password-file <file>`,
+`--keystore-password-env <name>`; otherwise a hidden TTY password prompt is used.
+It validates both halves of the keypair, preserves the address, encrypts and
+verifies before writing, and refuses existing output directories. No mnemonic
+is generated or copied. Run `verify --chain solana`, then `pack --chain solana`
+as described in the [README](../README.md#import-an-existing-solana-wallet).
+
+Imported batches require backend v2 keystore/report support. They explicitly use
+null derivation metadata rather than claiming an HD derivation path. Keep the
+original keypair or encrypted keystore for recovery. `export --allow-plaintext`
+supports both imported and derived batches without changing addresses.
