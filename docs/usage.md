@@ -112,3 +112,12 @@ Imported batches require backend v2 keystore/report support. They explicitly use
 null derivation metadata rather than claiming an HD derivation path. Keep the
 original keypair or encrypted keystore for recovery. `export --allow-plaintext`
 supports both imported and derived batches without changing addresses.
+
+## Diagnostic events
+
+Command actions emit JSON lifecycle events to stderr (`wallet_command_started`,
+`wallet_command_completed`, `wallet_command_failed`). They include the command,
+dry-run flag and/or elapsed milliseconds, never secret inputs or file contents.
+Stdout reports keep their existing format. A dry-run completion validates a plan
+only; it does not verify or create wallets. Argument parsing errors can exit
+before an action starts and remain Commander error messages.

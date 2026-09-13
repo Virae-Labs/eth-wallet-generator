@@ -25,6 +25,14 @@ function generationOptions(cmd) {
 }
 async function run(args = process.argv.slice(2)) {
   const program = new Command().name('wallet-gen').description('Offline EVM and Solana wallet generation, recovery, verification and packaging.');
+  let operationStartedAt;
+  program.hook('preAction', (_command, action) => {
+    operationStartedAt = Date.now();
+    console.error(JSON.stringify({ event: 'wallet_command_started', command: action.name(), dryRun: action.opts().dryRun === true }));
+  });
+  program.hook('postAction', (_command, action) => {
+    console.error(JSON.stringify({ event: process.exitCode ? 'wallet_command_failed' : 'wallet_command_completed', exitCode: Number(process.exitCode || 0), command: action.name(), elapsedMs: Date.now() - operationStartedAt, dryRun: action.opts().dryRun === true }));
+  });
   generationOptions(program.command('generate').description('Generate a new shared mnemonic and encrypted wallets'))
     .action(opts => generate('generate', opts));
   generationOptions(program.command('derive').description('Derive wallets from an existing mnemonic'))
@@ -68,7 +76,12 @@ async function run(args = process.argv.slice(2)) {
     .option('--password-file <file>', 'decryption password file')
     .option('--password-env <name>', 'variable containing decryption password')
     .action(exportKeypairs);
-  await program.parseAsync(args, { from: 'user' });
+  try {
+    await program.parseAsync(args, { from: 'user' });
+  } catch (error) {
+    console.error(JSON.stringify({event: 'wallet_command_failed', elapsedMs: operationStartedAt === undefined ? 0 : Date.now() - operationStartedAt}));
+    throw error;
+  }
 }
 function main(args) {
   run(args).catch(err => {

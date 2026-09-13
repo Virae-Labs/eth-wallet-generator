@@ -192,3 +192,12 @@ The dashboard backend must support imported-keypair v2 **before uploading this
 ZIP**. Older deployments reject it; updating the generator alone is insufficient.
 Choose the intended Solana network in the dashboard. Creating a ZIP is offline
 and does not import the wallet into the application or change any chain state.
+
+## Diagnostic events
+
+Command actions emit JSON lifecycle events to stderr (`wallet_command_started`,
+`wallet_command_completed`, `wallet_command_failed`). They include the command,
+dry-run flag and/or elapsed milliseconds, never secret inputs or file contents.
+Stdout reports keep their existing format. A dry-run completion validates a plan
+only; it does not verify or create wallets. Argument parsing errors can exit
+before an action starts and remain Commander error messages.
