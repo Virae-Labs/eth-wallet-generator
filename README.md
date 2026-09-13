@@ -79,8 +79,10 @@ node bin/wallet-gen.js pack --chain solana --in-dir ./output/solana-001
 ```
 
 This creates encrypted Solana wallets and `solana_wallet_report.json`. It does not
-fund wallets or contact a network. The Solana ZIP is **not supported by the current
-EVM-only trading-bot uploader**. Never upload it as an ETH wallet batch.
+fund wallets or contact a network. The updated trading-bot wallet manager accepts
+this encrypted ZIP when a Solana network is selected. The backend must include the
+wallet-network migration; older EVM-only deployments reject Solana packages.
+Solana transaction execution and strategies are not yet supported.
 
 To recover or extend a Solana batch:
 

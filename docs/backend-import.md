@@ -18,6 +18,14 @@ addresses but does not decrypt files. Run `verify` before packaging an externall
 supplied batch. Tests inspect ZIP contents and the report contract locally; they
 do not perform a production upload or modify the backend database.
 
-The generator is offline. Select the EVM network in the backend. Solana generation and export are available, but the backend does not yet support
-Solana wallet import or transaction signing. Solana packages use a different report
-filename and must not be uploaded through the EVM import flow.
+The generator is offline. Select the target network in the updated backend wallet
+upload form. Solana packages use `solana_wallet_report.json` and encrypted
+`solana-keystore` v1 records as documented in [Solana format](solana-format.md).
+They require the backend wallet-network migration and an explicit Solana network
+(`solana:mainnet-beta`, `solana:devnet`, or `solana:localnet`). Older EVM-only
+backends cannot import these packages. Plaintext CLI keypair exports are rejected.
+
+The updated backend supports Solana wallet management, batch password verification
+and balances, but not Solana transactions or strategy execution. Upload verifies
+format and identity; it does not decrypt keys until password verification. Group
+names must be new, and wallet addresses are unique per project and network.

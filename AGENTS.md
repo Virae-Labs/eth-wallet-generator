@@ -44,8 +44,9 @@ tool, not a trading client. It does not need RPC access or a database.
 6. Only export plaintext Solana keypairs when the user requests that format. Use
    `export --chain solana --format solana-keypair --allow-plaintext` with a new
    output directory. Never choose plaintext merely to avoid password setup.
-7. Never upload a Solana package through the current EVM-only backend. Use the
-   distinct report names and formats documented in docs/solana-format.md.
+7. Solana ZIPs require the updated multi-network wallet manager and an explicitly
+   selected Solana network. Never send them through an older EVM-only deployment
+   or select an EVM network. Use the distinct formats in docs/solana-format.md.
 8. Report counts, public paths and verification outcome. Do not claim online import
    or trading success from local file tests.
 

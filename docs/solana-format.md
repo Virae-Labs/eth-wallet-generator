@@ -98,8 +98,9 @@ local Ed25519 signature. JavaScript does not guarantee erasure of all secret cop
 `pack --chain solana` includes only `solana_wallet_report.json` and its referenced
 encrypted keystores. The mnemonic and arbitrary extra files are excluded. The ZIP
 container is not encrypted. It intentionally contains no `generation_report.json`:
-the current EVM-only trading-bot uploader must not interpret it as an EVM batch.
-Solana backend import/signing is a separate implementation stage.
+the backend must select its Solana importer using an explicit Solana network.
+The updated wallet manager supports encrypted import, password verification and
+balance queries. Solana transaction signing/execution remains a later stage.
 
 ## Explicit plaintext export: Solana CLI keypair JSON
 
