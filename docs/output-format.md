@@ -1,4 +1,4 @@
-# Output format
+# EVM output format
 
 ```text
 batch-001/
@@ -52,5 +52,5 @@ into a new archive. Packaging requires an object manifest with a `results` array
 Keep the derivation path, indices, public addresses and V3 encoding unchanged when
 refactoring. Encryption randomness means keystore bytes may differ even for the same
 wallet/password; compare decrypted addresses and signatures, not ciphertext bytes.
-A future non-EVM format requires an explicit chain family and format version rather
-than reusing EVM address normalization or assuming ethers can decrypt it.
+Solana uses a separate chain implementation and versioned format; see
+[Solana export formats](solana-format.md).

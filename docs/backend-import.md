@@ -18,5 +18,6 @@ addresses but does not decrypt files. Run `verify` before packaging an externall
 supplied batch. Tests inspect ZIP contents and the report contract locally; they
 do not perform a production upload or modify the backend database.
 
-The generator is offline. Select the EVM network in the backend. Solana generation,
-import and signing are not implemented in this version.
+The generator is offline. Select the EVM network in the backend. Solana generation and export are available, but the backend does not yet support
+Solana wallet import or transaction signing. Solana packages use a different report
+filename and must not be uploaded through the EVM import flow.

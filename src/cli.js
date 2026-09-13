@@ -1,7 +1,9 @@
-const { Command, InvalidArgumentError } = require('commander');
+const { Command, Option, InvalidArgumentError } = require('commander');
 const { verify } = require('./commands/verify');
 const { generate } = require('./commands/generate');
 const { pack } = require('./formats/archive');
+const { exportKeypairs } = require('./commands/export');
+const chainOption = () => new Option('--chain <chain>', 'wallet chain family').choices(['evm', 'solana']).default('evm');
 
 function integer(min, max = Number.MAX_SAFE_INTEGER) {
   return value => {
@@ -12,7 +14,7 @@ function integer(min, max = Number.MAX_SAFE_INTEGER) {
   };
 }
 function generationOptions(cmd) {
-  return cmd.option('-c, --count <n>', 'number of wallets', integer(1, 100000), 1)
+  return cmd.addOption(chainOption()).option('-c, --count <n>', 'number of wallets', integer(1, 100000), 1)
     .option('--start-index <n>', 'first derivation index and wallet ID', integer(0, 2147483647), 0)
     .option('-o, --out-dir <dir>', 'new batch directory (must not exist)', './wallets_out')
     .option('--keystore-password-file <file>', 'password file; removes one trailing newline')
@@ -21,7 +23,7 @@ function generationOptions(cmd) {
     .option('--dry-run', 'show plan only; no secrets generated, read or written');
 }
 async function run(args = process.argv.slice(2)) {
-  const program = new Command().name('wallet-gen').description('Offline EVM wallet generation, recovery, verification and packaging.');
+  const program = new Command().name('wallet-gen').description('Offline EVM and Solana wallet generation, recovery, verification and packaging.');
   generationOptions(program.command('generate').description('Generate a new shared mnemonic and encrypted wallets'))
     .action(opts => generate('generate', opts));
   generationOptions(program.command('derive').description('Derive wallets from an existing mnemonic'))
@@ -29,11 +31,14 @@ async function run(args = process.argv.slice(2)) {
     .option('--mnemonic-env <name>', 'environment variable containing mnemonic')
     .option('--write-mnemonic', 'also save the supplied mnemonic in the private batch directory')
     .action(opts => generate('derive', opts));
-  program.command('pack').description('Create a new backend-compatible ZIP from a completed batch')
+  program.command('pack').description('Package an encrypted batch (only EVM packages support the current backend)')
+    .addOption(chainOption())
     .requiredOption('--in-dir <dir>', 'batch directory containing generation_report.json')
     .option('--out-file <file>', 'new ZIP path; defaults to <batch>.zip')
     .action(pack);
-  program.command('verify').description('Verify existing EVM keystores')
+  program.command('verify').description('Verify encrypted wallets or explicitly selected Solana keypairs')
+    .addOption(chainOption())
+    .addOption(new Option('--format <format>', 'input format').choices(['encrypted', 'solana-keypair']).default('encrypted'))
     .option('--in-dir <dir>', 'keystore directory', './wallets_out/keystore')
     .option('--pattern <glob>', 'file pattern relative to input directory', '*.json')
     .option('--concurrency <n>', 'parallel decryption operations', integer(1, 16), 4)
@@ -44,12 +49,21 @@ async function run(args = process.argv.slice(2)) {
     .option('--write-report', 'write verification_report.json')
     .option('--jsonl', 'write verification.jsonl')
     .action(verify);
+  program.command('export').description('Export Solana CLI keypairs from an encrypted Solana batch')
+    .addOption(new Option('--chain <chain>', 'export chain').choices(['solana']).makeOptionMandatory())
+    .addOption(new Option('--format <format>', 'export format').choices(['solana-keypair']).makeOptionMandatory())
+    .requiredOption('--in-dir <dir>', 'encrypted Solana batch directory')
+    .requiredOption('--out-dir <dir>', 'new plaintext output directory')
+    .option('--allow-plaintext', 'explicitly permit private key output')
+    .option('--password-file <file>', 'decryption password file')
+    .option('--password-env <name>', 'variable containing decryption password')
+    .action(exportKeypairs);
   await program.parseAsync(args, { from: 'user' });
 }
 function main(args) {
   run(args).catch(err => {
     // Library errors may contain secret inputs. Print only controlled errors from this package.
-    const allowed = /^(Output directory|Invalid mnemonic|Derivation indices|Choose only|Keystore password|Mnemonic|Unable to read|Input cancelled|Wallet generation|Generated keystore|Cannot pack|Generation report|Invalid wallet|Keystore path|Duplicate wallet|Keystore directory|Archive inputs|Batch directory|Invalid generation|Invalid keystore|Keystore format|Archive creation)/;
+    const allowed = /^(Unsupported|Plaintext export|Invalid Solana|Output directory|Invalid mnemonic|Derivation indices|Choose only|Keystore password|Mnemonic|Unable to read|Input cancelled|Wallet generation|Generated keystore|Cannot pack|Generation report|Invalid wallet|Keystore path|Duplicate wallet|Keystore directory|Archive inputs|Batch directory|Invalid generation|Invalid keystore|Keystore format|Archive creation)/;
     console.error(allowed.test(err.message) ? err.message : 'Operation failed. Check input files, permissions and that output paths do not already exist.');
     process.exitCode = 1;
   });

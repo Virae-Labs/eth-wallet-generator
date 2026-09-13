@@ -1,12 +1,12 @@
 {
   "name": "eth-wallet-generator",
   "version": "1.0.0",
-  "description": "Offline bulk EVM wallet generation, recovery, verification and backend-compatible archives",
-  "main": "src/chains/evm.js",
+  "description": "Offline bulk EVM and Solana wallet generation, encrypted archives and explicit Solana CLI keypair export",
+  "main": "src/chains/index.js",
   "scripts": {
     "wallet": "node bin/wallet-gen.js",
     "test": "node --test tests/*.test.js",
-    "check": "node --check src/cli.js && node --check src/commands/generate.js && node --check src/commands/verify.js && node --check src/formats/archive.js && node --check src/shared/secrets.js"
+    "check": "node --check src/cli.js && node --check src/commands/generate.js && node --check src/commands/verify.js && node --check src/formats/archive.js && node --check src/shared/secrets.js && node --check src/chains/solana.js && node --check src/chains/index.js && node --check src/chains/evm.js && node --check src/commands/export.js"
   },
   "keywords": [],
   "author": "",
@@ -14,15 +14,19 @@
   "type": "commonjs",
   "dependencies": {
     "archiver": "^7.0.1",
+    "bip39": "3.1.0",
+    "bs58": "6.0.0",
     "commander": "^14.0.1",
     "ethers": "^6.15.0",
     "fast-glob": "^3.3.3",
-    "p-limit": "^3.1.0"
+    "micro-key-producer": "0.10.2",
+    "p-limit": "^3.1.0",
+    "tweetnacl": "1.0.3"
   },
   "bin": {
     "wallet-gen": "bin/wallet-gen.js"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=20.19.0"
   }
 }

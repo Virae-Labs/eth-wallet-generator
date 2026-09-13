@@ -1,13 +1,13 @@
-# EVM Wallet Generator
+# EVM and Solana Wallet Generator
 
-An offline CLI for generating and recovering batches of Ethereum-compatible wallets,
+An offline CLI for generating and recovering batches of EVM and Solana wallets,
 verifying encrypted keystores, and creating ZIP files for the trading-bot backend.
 Ethereum, Base and other EVM networks use the same keys and addresses. Generation
-requires no RPC, database, gas or network connection. Solana is not implemented yet.
+requires no RPC, database, gas or network connection. Select `--chain solana` for Solana; `--chain evm` is the default.
 
 ## Install
 
-Use Node.js 20 or newer. Install the locked dependencies:
+Use Node.js 20.19 or newer. Install the locked dependencies:
 
 ```sh
 npm ci
@@ -23,17 +23,18 @@ ZIP scripts have been removed. Use the subcommands below directly:
 
 | Command | Purpose |
 | --- | --- |
-| `generate` | Create a new shared mnemonic and a batch of encrypted EVM wallets |
+| `generate` | Create a new shared mnemonic and a batch of encrypted wallets |
 | `derive` | Recover or extend wallets from an existing mnemonic |
 | `verify` | Decrypt keystores and check their addresses |
-| `pack` | Create a fresh ZIP for the backend, excluding the mnemonic |
+| `pack` | Create a fresh encrypted-wallet ZIP, excluding the mnemonic |
+| `export` | Explicitly export Solana CLI plaintext keypairs |
 
 Run `node bin/wallet-gen.js <command> --help` for all options. You can also use
 `npm run wallet -- <command> ...`. Plaintext secret arguments, mode selectors and
 permission overrides are not supported; use secret files, environment variables,
 or the interactive hidden prompt.
 
-## Generate, verify and package
+## EVM: generate, verify and package
 
 Run these commands from this repository. The first command prompts for a hidden
 keystore password. Every batch must use a new output directory.
@@ -50,7 +51,7 @@ it is plaintext, controls the entire batch, and is never included in the ZIP.
 Keystore files are Ethereum V3 password-encrypted JSON files. The ZIP container
 itself is not encrypted; addresses and derivation paths are public metadata.
 
-## Recover or extend a batch
+## Recover or extend an EVM batch
 
 Use a securely stored mnemonic file. You can choose a new encryption password;
 changing that password does not change the derived addresses.
@@ -66,6 +67,45 @@ To derive the next five accounts, use `--start-index 5` and a new directory.
 The fixed path is `m/44'/60'/0'/0/i`; wallet IDs equal `i` and default to 0 through
 `count - 1`. Recovery does not copy the mnemonic unless `--write-mnemonic` is set.
 BIP39 passphrases are not supported; the keystore password is a different concept.
+
+## Solana: generate, verify and package
+
+```sh
+node bin/wallet-gen.js generate --chain solana --count 5 \
+  --out-dir ./output/solana-001 --keystore-password-file /secure/password.txt
+node bin/wallet-gen.js verify --chain solana \
+  --in-dir ./output/solana-001/keystore --password-file /secure/password.txt
+node bin/wallet-gen.js pack --chain solana --in-dir ./output/solana-001
+```
+
+This creates encrypted Solana wallets and `solana_wallet_report.json`. It does not
+fund wallets or contact a network. The Solana ZIP is **not supported by the current
+EVM-only trading-bot uploader**. Never upload it as an ETH wallet batch.
+
+To recover or extend a Solana batch:
+
+```sh
+node bin/wallet-gen.js derive --chain solana --count 5 --start-index 5 \
+  --mnemonic-file /secure/solana-mnemonic.txt \
+  --keystore-password-file /secure/password.txt --out-dir ./output/solana-002
+```
+
+The path is `m/44'/501'/i'/0'`. Keep the original phrase and index range to recover
+the same addresses. Solana public keys retain their Base58 letter case.
+
+For a Solana CLI keypair, explicitly export plaintext files from an encrypted batch:
+
+```sh
+node bin/wallet-gen.js export --chain solana --format solana-keypair \
+  --in-dir ./output/solana-001 --out-dir ./output/solana-cli-001 \
+  --password-file /secure/password.txt --allow-plaintext
+node bin/wallet-gen.js verify --chain solana --format solana-keypair \
+  --in-dir ./output/solana-cli-001/keypairs
+```
+
+These keypair JSON files contain unencrypted private keys. They are never produced
+by default, and `pack` does not package them. See [Solana formats](docs/solana-format.md)
+for the encrypted schema, keypair byte layout and integration boundaries.
 
 ## Non-interactive use (automation / AI)
 
@@ -99,7 +139,8 @@ mnemonic/password, create keys, encrypt files, or validate output write permissi
 ## Documentation
 
 - [Command reference and troubleshooting](docs/usage.md)
-- [Output format and recovery rules](docs/output-format.md)
+- [EVM output format and recovery rules](docs/output-format.md)
+- [Solana derivation and export formats](docs/solana-format.md)
 - [Backend import contract](docs/backend-import.md)
 - [Commented command examples](examples/commands.sh)
 
@@ -110,7 +151,7 @@ npm run check
 npm test
 ```
 
-`bin/` holds the CLI, `src/commands/` the operations, `src/chains/` the EVM
-implementation, `src/formats/` archive handling, and `src/shared/` secret input.
+`bin/` holds the CLI, `src/commands/` the operations, `src/chains/` the EVM and Solana
+implementations, `src/formats/` archive handling, and `src/shared/` secret input.
 Test fixtures use public test keys and disposable temporary directories, never
 existing user wallets. [AGENTS.md](AGENTS.md) provides operating instructions for AI agents.
