@@ -78,3 +78,34 @@ path for it. Use `--expected-address` when the public address is known. Password
 handling follows generation. Verify, then pack; never package the plaintext
 source. Imported-keypair v2 support must be deployed in the backend before a
 dashboard upload. Report local validation separately from online import.
+
+## Multi-chain architecture and feature parity
+
+- Treat multi-chain support as the default for feature design and changes across
+  the frontend and backend, including pages, trading execution, wallet operations,
+  and CEX withdrawals. Unless the user explicitly limits scope, a feature change
+  applies to every supported chain within the relevant product capability.
+- Share page components, interactions, display conventions, business rules, and
+  workflow orchestration wherever their semantics are common. Put chain-specific
+  behavior behind explicit adapters and capability/configuration contracts.
+  Do not duplicate entire pages or business flows per chain, or embed EVM-only
+  assumptions in shared layers.
+- Keep signing, transaction construction, broadcast, confirmation, address rules,
+  precision, fees, and other protocol differences in chain adapters. For CEX
+  withdrawals, share the business workflow while adapting exchange APIs and
+  network identifiers, limits, fees, and availability separately.
+- When changing a feature, inspect its shared implementation and every supported
+  chain's relevant adapter, API contract, and UI. Fix omissions within the feature
+  scope; do not consider an EVM-only change complete while Solana is accidentally
+  missing the same applicable behavior, or vice versa.
+- Model genuine chain or provider limitations explicitly through capabilities.
+  Explain unavailable behavior in the product where relevant and report remaining
+  gaps. Do not silently omit functionality, pretend unsupported behavior works,
+  or force different protocols into identical execution semantics.
+- Validate the affected shared behavior and chain-specific boundaries with
+  proportionate checks for each supported chain. Report coverage and unresolved
+  limitations; shared code alone is not proof of multi-chain correctness.
+- Abstract real common behavior. Do not build speculative frameworks for every
+  possible future chain, or turn a scoped feature request into an unrelated
+  project-wide rewrite. Adding registry/configuration entries alone does not
+  implement a new chain's capabilities.
